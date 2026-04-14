@@ -1,4 +1,4 @@
-package com.jamify.auth_service;
+package com.jamify.auth;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
