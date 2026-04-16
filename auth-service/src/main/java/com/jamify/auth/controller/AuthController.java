@@ -133,9 +133,9 @@ public class AuthController {
                     required = false) String token,
             HttpServletResponse response) {
 
-//        if (token != null) {
-//            jwtService.blacklistSession(token);
-//        }
+        if (token != null) {
+            jwtService.blacklistSession(token);
+        }
 
         // Clear the cookie
         ResponseCookie cookie = ResponseCookie

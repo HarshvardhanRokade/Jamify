@@ -27,8 +27,6 @@ public class JwtService {
 
     private final RedisTemplate<String , String> redisTemplate;
 
-    private static final String BLACKLIST_KEY = "blacklisted_sessions";
-
     public JwtService (RedisTemplate<String , String> redisTemplate){
         this.redisTemplate = redisTemplate;
     }
@@ -108,7 +106,7 @@ public class JwtService {
 
     // ─── Blacklist a session ─────────────────────────────────────────────
 
-    public void blackListSession(String token){
+    public void blacklistSession(String token){
         try {
             Claims claims = extractAllClaims(token);
             String sessionId = claims.get("sessionId" , String.class);
@@ -116,9 +114,13 @@ public class JwtService {
 
             long ttlMs = expiry.getTime() - System.currentTimeMillis();
             if(ttlMs > 0){
-                redisTemplate.opsForSet().add(BLACKLIST_KEY, sessionId);
-                redisTemplate.expire(BLACKLIST_KEY,
-                        ttlMs, TimeUnit.MILLISECONDS);
+                String uniqueKey = "blacklist:" + sessionId;
+                redisTemplate.opsForValue().set(
+                        uniqueKey,
+                        "revoked",
+                        ttlMs,
+                        TimeUnit.MILLISECONDS
+                );
                 log.info("Blacklisted session: {}", sessionId);
             }
         }catch (Exception e) {
@@ -130,8 +132,9 @@ public class JwtService {
     // ─── Check if session is blacklisted ────────────────────────────────
 
     private boolean isSessionBlacklisted(String sessionId) {
+        String uniqueKey = "blacklist:" + sessionId;
         return Boolean.TRUE.equals(
-                redisTemplate.opsForSet().isMember(BLACKLIST_KEY, sessionId)
+                redisTemplate.hasKey(uniqueKey)
         );
     }
 }
