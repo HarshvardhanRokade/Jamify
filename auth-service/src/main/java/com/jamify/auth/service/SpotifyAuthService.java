@@ -103,11 +103,20 @@ public class SpotifyAuthService {
 
     // ─── Step 5: Fetch user profile from Spotify ───────────────────────
 
-    public SpotifyUserProfile fetchUserProfile(String accessToken){
+    public SpotifyUserProfile fetchUserProfile(String accessToken) {
+        log.info("Fetching profile with token length: {}",
+                accessToken.length());
+
         return spotifyWebClient.get()
                 .uri("/me")
-                .header("Authorization" , "Bearer" + accessToken)
+                .header("Authorization", "Bearer " + accessToken)
                 .retrieve()
+                .onStatus(status -> status.is4xxClientError(),
+                        clientResponse -> clientResponse.bodyToMono(String.class)
+                                .map(body -> {
+                                    log.error("Spotify /me error body: {}", body);
+                                    return new RuntimeException(body);
+                                }))
                 .bodyToMono(SpotifyUserProfile.class)
                 .block();
     }
