@@ -1,6 +1,7 @@
 package com.jamify.auth.controller;
 
 import com.jamify.auth.entity.User;
+import com.jamify.auth.repository.UserRepository;
 import com.jamify.auth.service.JwtService;
 import com.jamify.auth.service.SpotifyAuthService;
 import com.jamify.auth.dto.SpotifyTokenResponse;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class AuthController {
 
     private final SpotifyAuthService spotifyAuthService;
+    private final UserRepository userRepository;
     private final JwtService jwtService;
 
     @Value("${app.frontend-url}")
@@ -158,5 +160,28 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<Map<String, String>> health() {
         return ResponseEntity.ok(Map.of("status", "ok"));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me(
+            @CookieValue(value = "jamify_token",
+                    required = false) String token) {
+
+        if (token == null || !jwtService.validateToken(token)) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Not authenticated"));
+        }
+
+        UUID userId = jwtService.extractUserId(token);
+        return userRepository.findActiveById(userId)
+                .map(user -> ResponseEntity.ok(Map.of(
+                        "userId", user.getId().toString(),
+                        "displayName", user.getDisplayName(),
+                        "avatarUrl", user.getAvatarUrl(),
+                        "email", user.getEmail(),
+                        "isPremium", user.isPremium()
+                )))
+                .orElse(ResponseEntity.status(401)
+                        .body(Map.of("error", "User not found")));
     }
 }
