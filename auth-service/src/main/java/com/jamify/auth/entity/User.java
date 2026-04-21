@@ -65,8 +65,6 @@ public class User {
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
 
-    int Streak;
-
     @PrePersist
     protected void onCreate(){
         createdAt = OffsetDateTime.now();
