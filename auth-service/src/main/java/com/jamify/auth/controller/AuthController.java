@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -167,21 +168,28 @@ public class AuthController {
             @CookieValue(value = "jamify_token",
                     required = false) String token) {
 
+        log.info("--- ME ENDPOINT HIT ---");
+
         if (token == null || !jwtService.validateToken(token)) {
             return ResponseEntity.status(401)
                     .body(Map.of("error", "Not authenticated"));
         }
 
         UUID userId = jwtService.extractUserId(token);
-        return userRepository.findActiveById(userId)
-                .map(user -> ResponseEntity.ok(Map.of(
-                        "userId", user.getId().toString(),
-                        "displayName", user.getDisplayName(),
-                        "avatarUrl", user.getAvatarUrl(),
-                        "email", user.getEmail(),
-                        "isPremium", user.isPremium()
-                )))
-                .orElse(ResponseEntity.status(401)
-                        .body(Map.of("error", "User not found")));
+        Optional<User> userOpt = userRepository.findActiveById(userId);
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "User not found"));
+        }
+
+        User user = userOpt.get();
+        return ResponseEntity.ok(Map.of(
+                "userId", user.getId().toString(),
+                "displayName", user.getDisplayName(),
+                "avatarUrl", user.getAvatarUrl() != null ? user.getAvatarUrl() : "",
+                "email", user.getEmail() != null ? user.getEmail() : "",
+                "isPremium", user.isPremium()
+        ));
     }
 }
